@@ -1,20 +1,16 @@
 from os import environ as env
-from flask import Flask
 from flask.logging import default_handler
-from werkzeug.middleware.proxy_fix import ProxyFix
-from main.main import main
-from healthcheck.healthcheck import healthcheck
+
+from helpers.customflask import ApiFlask
+from helpers.with_proxy_fix import with_proxy_fix
+from blueprints import register_blueprints
+from global_objects import db
 
 
-def create_app():
-    """ instantiate new flask app """
-    app = Flask(__name__)
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_host=1)
-    app.logger.removeHandler(default_handler)
-
-    app.config["MONGO_URI"] = env.get("MONGO_URI")
-
-    app.register_blueprint(main)
-    app.register_blueprint(healthcheck)
-
-    return app
+app = ApiFlask(__name__)
+app.logger.removeHandler(default_handler)
+app.config["MONGO_URI"] = env.get("MONGO_URI")
+app.config["PROXY_FIX"] = env.get("PROXY_FIX")
+app = with_proxy_fix(app)
+db.init_app(app)
+register_blueprints(app)
